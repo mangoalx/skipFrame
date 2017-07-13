@@ -1,0 +1,7 @@
+# gedit backup files
+*.sh~
+*.py~
+*.gitignore~
+
+# Python compiled files
+*.pyc
