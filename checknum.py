@@ -8,7 +8,7 @@
 # V0.1	First version, 2 continued numbers confirm the jump, can be fooled easily
 # V0.2  To check jumps, for confirming a jump the continued number needed can be set to 3 or even higher
 #		Also 4 lists are used to track 4 different possible value group, to find out which one is real
-#
+# V0.21 * to strip whitespace, '.', '-' from the ocr result
 #
 # When jump followed by jump, it lost trace and can not update numNew, need better process
 import sys
@@ -159,15 +159,17 @@ with open(inputfile,'r') as infile:
 			continue
 
 # Sometimes extra charaters may appear at the head or the tail. So trying to remove it (1 or whitespace at head, point etc. at the tail)
-		if(len(line)>6):
-			if(line[0] != "0"):		#First char is not 0 then remove it, could be a space or 1
-				line=line[1:]
-			elif(line[6] in "1- .,:!'`)"): 
+#		if(len(line)>6):
+#			if(line[0] != "0"):		#First char is not 0 then remove it, could be a space or 1
+#				line=line[1:]
+#			elif(line[6] in "1- .,:!'`)"): 
 									#Removing trailing 1 may cause errors
 #			elif(line[6] in " .,:!'`"):		 
-				line=line[:6]		#Takes only first 6 charactors if next one is a '.' or something likewise
-		line=line.replace("o","0")	#Temporary measure to correct o->0 problem
+#				line=line[:6]		#Takes only first 6 charactors if next one is a '.' or something likewise
+#		line=line.replace("o","0")	#Temporary measure to correct o->0 problem
 
+		# When using digits whitelist, space/period/dash could appear in the result, so remove them all
+		line=line.replace(" ","").replace(".","").replace("-","")
 		if(line.isdigit()):
 			#pure number
 			ocrNumber+=1
