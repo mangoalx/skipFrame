@@ -2,6 +2,8 @@
 # V0.2 	tesseract ocr all jpg files in parallel
 #		- display progress indicator, 1) display total/100 chars '-', 2) in tessafile, display a '+' everytime filename ends with '00' to stderr 
 #		All messages and progress indicator are directed to stderr so they won't mix with ocr outputs, user can direct ocr result to a file
+# V0.3  Using find command instead of ls command to avoid "bin/ls ls argument list too long" error
+#
 # Authur: John Xu
 # Should check if $1 exists, output to $1 file. If not specified, output to screen
 set -o errexit				# to exit when a command failed
@@ -23,7 +25,8 @@ echo "Tesseracting images, please wait ... " >&2
 		usingtmp=0
 	fi
 	count=0
-	total=$(ls -1 *.jpg|wc -l)
+#	total=$(ls -1 *.jpg|wc -l)
+	total=$(find . -maxdepth 1 -name "*.jpg" | wc -l)		# to solve the error "ls argument list too long"
 	echo "Total jpg files: $total" >&2
 	# For progress indicator ...	
 	hundreds=$((total / 100)); 
@@ -32,7 +35,8 @@ echo "Tesseracting images, please wait ... " >&2
 
 	if [ -z "$1" ]
 	then
-		ls *.jpg | xargs -n 1 -P $cpus tessafile.sh | sort
+#		ls *.jpg | xargs -n 1 -P $cpus tessafile.sh | sort
+		find . -maxdepth 1 -name "*.jpg" | xargs -n 1 -P $cpus tessafile.sh | sort 	# to solve the error "ls argument list too long"
 		if [ usingtmp=1 ]
 		then
 			cd ..
@@ -43,7 +47,8 @@ echo "Tesseracting images, please wait ... " >&2
 		then
 			rm "$outname"
 		fi
-		ls *.jpg | xargs -n 1 -P $cpus tessafile.sh | sort >> "$outname"
+#		ls *.jpg | xargs -n 1 -P $cpus tessafile.sh | sort >> "$outname"
+		find . -maxdepth 1 -name "*.jpg" | xargs -n 1 -P $cpus tessafile.sh | sort >> "$outname" 	# to solve the error "ls argument list too long"
 #		outname="ocrResult.txt" 
 		if [ usingtmp=1 ]
 		then
