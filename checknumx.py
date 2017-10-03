@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Python program for checking through tesseract result, comparing numbers and telling out how many numbers are skipped
+# Python program for checking through tesseract result, comparing numbers and counting out how many numbers are skipped
 # By John Xu
 #
 #
@@ -10,11 +10,14 @@
 #		Also 4 lists are used to track 4 different possible value group, to find out which one is real
 # V0.21 - to strip whitespace, '.', '-' from the ocr result
 # V0.3  - Allow big jump, and wrap back jump
-#		* Print bigjump if jumpno >=3, djump if jumpno =2
+#		- Print bigjump if jumpno >=3, djump if jumpno =2
+# V0.4
+#		- Print the first start number so we can check if it is continuous with prev/next out files
+#		- Process all .num file in the folder to get one sum up result
 #
 # When jump followed by jump, it lost trace and can not update numNew, need better process
 import sys
-inputfile = sys.argv[1]
+import glob					# For filename match
 import pdb					# For debug
 
 #Constant
@@ -24,6 +27,7 @@ loopBackNo=30			# If new number is less than loopBackNumber, the video restarted
 
 #Global variables
 numStart=-1
+numFirstStart=-1		# To keep the very first start number of this number file
 numCurrent=-1
 totalSkip=0
 numTotal=0
@@ -127,7 +131,7 @@ def numContinued(number):
 		return False
 
 def process(number):
-	global numCurrent,totalSkip,numStart,numTotal
+	global numCurrent,totalSkip,numStart,numTotal,numFirstStart
 	if((loopBackNo<number<numCurrent)or((numCurrent!=-1)and((number-numCurrent)>MaxJump))):
 		print "invalid number %d" %number
 		return
@@ -136,6 +140,7 @@ def process(number):
 		if(numJumped(number)):
 			if(numCurrent==-1):
 				print "Start at %d" %(numStart)
+				numFirstStart=numStart									# Save the very first start number
 			else:
 				if((number<loopBackNo)and(numCurrent>loopBackNo)):		#Is it a loop back confirmed?
 					print "Looped back after %d." %(numCurrent)
@@ -158,21 +163,27 @@ ocrNumber=0
 fileLine=0
 otherLine=0
 
-with open(inputfile,'r') as infile:
-	for line in infile:
-#		if(line.startswith("frame"):
-		if(line.startswith("frame") or line.startswith("./frame")):		# Replaced ls with find command, so file name got extra ./
-			#image file, all ocr-result start with the image filename
-			fileLine+=1
-			if("===" in line):						# frame-000010.jpg ===002097
-				line = line.split("===",1)[1]		#strip out ocr result
-			else:
-				continue							# === not found, then no ocr result behind the filename
-		line=line.strip()	#remove space & newline etc.
-		if(len(line)==0):
-			#empty line
-			#emptyLine+=1
-			continue
+if(len(sys.argv)>1):
+	inputfile = sys.argv[1]			#if filename is specified, use glob to search all matched files
+else:
+	inputfile='*.num'				#if filename is not specified, default is all .num file
+
+for f in sorted(glob.glob(inputfile)):
+	with open(f,'r') as infile:
+		for line in infile:
+#			if(line.startswith("frame"):
+			if(line.startswith("frame") or line.startswith("./frame")):		# Replaced ls with find command, so file name got extra ./
+				#image file, all ocr-result start with the image filename
+				fileLine+=1
+				if("===" in line):						# frame-000010.jpg ===002097
+					line = line.split("===",1)[1]		#strip out ocr result
+				else:
+					continue							# === not found, then no ocr result behind the filename
+			line=line.strip()	#remove space & newline etc.
+			if(len(line)==0):
+				#empty line
+				#emptyLine+=1
+				continue
 
 # Sometimes extra charaters may appear at the head or the tail. So trying to remove it (1 or whitespace at head, point etc. at the tail)
 #		if(len(line)>6):
@@ -184,19 +195,19 @@ with open(inputfile,'r') as infile:
 #				line=line[:6]		#Takes only first 6 charactors if next one is a '.' or something likewise
 #		line=line.replace("o","0")	#Temporary measure to correct o->0 problem
 
-		# When using digits whitelist, space/period/dash could appear in the result, so remove them all
-		line=line.replace(" ","").replace(".","").replace("-","")
-		if(line.isdigit()):
-			#pure number
-			ocrNumber+=1
-			number=int(line)
-			process(number)
-			continue
-		else:
-			otherLine+=1
-			print "other line #####"
-			print(line)
-print "Start number: %d, Last number: %d" %(numStart, numCurrent)
+			# When using digits whitelist, space/period/dash could appear in the result, so remove them all
+			line=line.replace(" ","").replace(".","").replace("-","")
+			if(line.isdigit()):
+				#pure number
+				ocrNumber+=1
+				number=int(line)
+				process(number)
+				continue
+			else:
+				otherLine+=1
+				print "other line #####"
+				print(line)
+print "Start number: %d, Last number: %d" %(numFirstStart, numCurrent)
 numTotal+= numCurrent-numStart+1
 print "Total skipped: %d, total number: %d, skip percentage: %f%%" % (totalSkip, numTotal, 100.0*totalSkip/numTotal)
 print "ocrNumbers: %d   filelines: %d   otherLines: %d" % (ocrNumber, fileLine, otherLine)
